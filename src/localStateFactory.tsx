@@ -34,7 +34,7 @@ class Store<T> {
 type Selector<T, U> = (state: T) => U;
 type Compare<T> = (first: T, second: T) => boolean;
 
-export const localStateFactory = <T extends object>(
+export const createContextState = <T extends object>(
   stateFunc: () => T,
   displayName: string
 ) => {
@@ -67,7 +67,7 @@ export const localStateFactory = <T extends object>(
         setValue(selectorValue);
       }
     };
-    useEffect(store.subscribe(updateStateConditionally));
+    useEffect(() => store.subscribe(updateStateConditionally));
 
     return value;
   };
