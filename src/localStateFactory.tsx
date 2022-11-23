@@ -2,7 +2,7 @@ import React, {
   PropsWithChildren,
   useContext,
   useEffect,
-  useState,
+  useReducer,
 } from "react";
 
 type Listener = () => void;
@@ -32,13 +32,13 @@ class Store<T> {
   }
 }
 type Selector<T, U> = (state: T) => U;
-type Compare<T> = (first: T, second: T) => boolean;
+type AreEqual<T> = (first: T, second: T) => boolean;
 
 export const createContextState = <T extends object>(
   stateFunc: () => T,
   displayName: string
 ) => {
-  const Context = React.createContext((undefined as unknown) as Store<T>);
+  const Context = React.createContext(undefined as unknown as Store<T>);
   Context.displayName = displayName;
 
   const Provider: React.FC<PropsWithChildren> = ({ children }) => {
@@ -55,19 +55,24 @@ export const createContextState = <T extends object>(
 
   const useContextSelector = <U,>(
     selector: Selector<T, U>,
-    compare: Compare<U> = (first, second) => first === second
+    areEqual: AreEqual<U> = (first, second) => first === second
   ) => {
     const store = useContext(Context);
+    const [value, setValue] = useReducer(
+      (prevState: U, newState: U) => newState,
+      selector(store.state)
+    );
 
-    const [value, setValue] = useState(selector(store.state));
-
-    const updateStateConditionally = () => {
-      const selectorValue = selector(store.state);
-      if (compare(selectorValue, value)) {
-        setValue(selectorValue);
-      }
-    };
-    useEffect(() => store.subscribe(updateStateConditionally));
+    useEffect(() => {
+      const updateConditionally = () => {
+        const selectorValue = selector(store.state);
+        if (!areEqual(selectorValue, value)) {
+          setValue(selectorValue);
+        }
+      };
+      const unsubscribe = store.subscribe(updateConditionally);
+      return unsubscribe;
+    }, []);
 
     return value;
   };
