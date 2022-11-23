@@ -1,10 +1,19 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { createContextState } from "./localStateFactory";
 
 const useLocalState = () => {
-  const [name, setName] = useState<string | null>(null);
-  const [surname, setSurname] = useState<string | null>(null);
+  const [name, setName] = useState<string>("");
+  const [surname, setSurname] = useState<string>("");
   const [todos, setTodos] = useState<string[]>([]);
+
+  const addTodo = useCallback(
+    (todo: string) => setTodos((t) => [...t, todo]),
+    []
+  );
+  const removeTodo = useCallback(
+    (index: number) => setTodos((t) => t.filter((_, i) => i !== index)),
+    []
+  );
 
   return useMemo(
     () => ({
@@ -13,11 +22,10 @@ const useLocalState = () => {
       todos,
       setName,
       setSurname,
-      addTodo: (todo: string) => setTodos([...todos, todo]),
-      removeTodo: (index: number) =>
-        setTodos(todos.filter((_, i) => i !== index)),
+      addTodo,
+      removeTodo,
     }),
-    [name, surname, todos]
+    [name, surname, todos, addTodo, removeTodo]
   );
 };
 export const {
