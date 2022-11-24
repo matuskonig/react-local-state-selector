@@ -1,12 +1,14 @@
 import React, {
+  FC,
   PropsWithChildren,
   useContext,
   useEffect,
   useReducer,
 } from "react";
+import { useRef } from "react";
 
 type Listener = () => void;
-class Store<T> {
+export class Store<T> {
   _state: T;
   listeners = new Set<Listener>();
 
@@ -31,51 +33,93 @@ class Store<T> {
     }
   }
 }
-type Selector<T, U> = (state: T) => U;
-type AreEqual<T> = (first: T, second: T) => boolean;
+export type Selector<T, U> = (state: T) => U;
+export type AreEqual<T> = (first: T, second: T) => boolean;
+const basicEqual = <T,>(a: T, b: T) => a === b;
 
-export const createContextState = <T extends object>(
-  stateFunc: () => T,
-  displayName: string
-) => {
-  const Context = React.createContext(undefined as unknown as Store<T>);
-  Context.displayName = displayName;
-
-  const Provider: React.FC<PropsWithChildren> = ({ children }) => {
-    const state = stateFunc();
-    const store = React.useRef(new Store(state));
+interface WithState<T> {
+  state: T;
+}
+export const createProvider = <T,>(Context: React.Context<Store<T>>) => {
+  const Provider: FC<PropsWithChildren<WithState<T>>> = ({
+    state,
+    children,
+  }) => {
+    const store = useRef<Store<T> | null>(null);
+    if (store.current === null) {
+      store.current = new Store(state);
+    }
     useEffect(() => {
-      store.current.state = state;
+      if (store.current) {
+        store.current.state = state;
+      }
     }, [state]);
-
     return (
       <Context.Provider value={store.current}>{children}</Context.Provider>
     );
   };
+  return Provider;
+};
 
-  const useContextSelector = <U,>(
-    selector: Selector<T, U>,
-    areEqual: AreEqual<U> = (first, second) => first === second
-  ) => {
-    const store = useContext(Context);
-    const [value, setValue] = useReducer(
-      (prevState: U, newState: U) => newState,
-      selector(store.state)
-    );
+export const useStaticContextSelector = <T, U>(
+  Context: React.Context<Store<T>>,
+  selector: Selector<T, U>,
+  areEqual: AreEqual<U> = basicEqual
+) => {
+  const store = useContext(Context);
 
-    useEffect(() => {
-      const updateConditionally = () => {
-        const selectorValue = selector(store.state);
-        if (!areEqual(selectorValue, value)) {
-          setValue(selectorValue);
-        }
-      };
-      const unsubscribe = store.subscribe(updateConditionally);
-      return unsubscribe;
-    }, []);
+  const [value, setValue] = useReducer(
+    (_: U, newState: U) => newState,
+    selector(store.state)
+  );
 
-    return value;
-  };
+  useEffect(() => {
+    const updateConditionally = () => {
+      const selectorValue = selector(store.state);
+      if (!areEqual(selectorValue, value)) {
+        setValue(selectorValue);
+      }
+    };
+    return store.subscribe(updateConditionally);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  return { Provider, useContextSelector };
+  return value;
+};
+
+export const useVariableContextSelector = <T, U>(
+  Context: React.Context<Store<T>>,
+  selector: Selector<T, U>,
+  areEqual: AreEqual<U> = basicEqual
+) => {
+  const store = useContext(Context);
+  const selectorRef = useRef(selector);
+
+  const [value, setValue] = useReducer(
+    (prevState: U, newState: U) => newState,
+    selector(store.state)
+  );
+
+  useEffect(() => {
+    selectorRef.current = selector;
+
+    const selectorValue = selector(store.state);
+    if (!areEqual(selectorValue, value)) {
+      setValue(selectorValue);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selector]);
+
+  useEffect(() => {
+    const updateConditionally = () => {
+      const selectorValue = selectorRef.current(store.state);
+      if (!areEqual(selectorValue, value)) {
+        setValue(selectorValue);
+      }
+    };
+    return store.subscribe(updateConditionally);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return value;
 };

@@ -1,16 +1,17 @@
 import React from "react";
-import { AddTodo, Name, Surname, TodoList } from "./Fields";
-import { LocalStateProvider } from "./localState";
+import { AddTodo, IndexedTodo, Name, Surname, TodoList } from "./Fields";
+import { LocalContextProvider } from "./localState";
 
 const SingleApp = () => (
-  <LocalStateProvider>
+  <LocalContextProvider>
     <div style={{ display: "flex", flexDirection: "column" }}>
       <Name />
       <Surname />
       <AddTodo />
       <TodoList />
+      <IndexedTodo />
     </div>
-  </LocalStateProvider>
+  </LocalContextProvider>
 );
 const App = () => <SingleApp />;
 
