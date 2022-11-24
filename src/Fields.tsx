@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   useVariableLocalContextSelector,
   useStaticLocalContextSelector,
@@ -89,8 +89,8 @@ export const TodoList = () => {
 export const IndexedTodo = () => {
   const [index, setIndex] = useState<number | null>(null);
   const todos = useStaticLocalContextSelector(({ todos }) => todos);
-  const note = useVariableLocalContextSelector(({ todos }) =>
-    index != null ? todos[index] : null
+  const note = useVariableLocalContextSelector(
+    useCallback(({ todos }) => (index != null ? todos[index] : null), [index])
   );
   return (
     <div>
