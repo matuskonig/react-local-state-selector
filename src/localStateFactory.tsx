@@ -61,6 +61,8 @@ export const createProvider = <T,>(Context: React.Context<Store<T>>) => {
   return Provider;
 };
 
+/* Use this context selector in case the selector is static, e.g. is not changed dynamicly, it is not a closure 
+depending on props, etc. Reference change of selector does not trigger selector recumputation and update. */
 export const useStaticContextSelector = <T, U>(
   Context: React.Context<Store<T>>,
   selector: Selector<T, U>,
@@ -87,6 +89,9 @@ export const useStaticContextSelector = <T, U>(
   return value;
 };
 
+/* Use this selector for dynamic selectors, e.g. dynamically changed on condition, closures dependant on props.
+Every reference change of selector causes selector trigger and if the return values are not equal, causes 
+a rerender. */
 export const useVariableContextSelector = <T, U>(
   Context: React.Context<Store<T>>,
   selector: Selector<T, U>,
